@@ -1,0 +1,29 @@
+# Make sure ActiveDirectory module is installed first by using:
+# Get-Module -ListAvailable -Name ModuleName
+
+Install-Module -Name ActiveDirectory
+
+# Ensure the ActiveDirectory module is available
+Import-Module ActiveDirectory
+
+# Get all users from AD
+Get-ADUser -Filter * -Properties DisplayName, Enabled, PasswordNeverExpires, CannotChangePassword, PasswordLastSet |
+Select-Object `
+    @{Name='Name';Expression={$_.DisplayName}}, 
+    @{Name='Enabled';Expression={$_.Enabled}},
+    @{Name='CannotChangePassword';Expression={
+        # This requires checking using ACLs
+        $acl = Get-ACL ("AD:\" + $_.DistinguishedName)
+        $deny = $acl.Access | Where-Object {
+            $_.IdentityReference -eq $_.SamAccountName -and
+            $_.ActiveDirectoryRights -match "ExtendedRight" -and
+            $_.AccessControlType -eq "Deny"
+        }
+        if ($deny -ne $null -and $deny.AccessControlType -eq "Deny") { $true } else { $false }
+    }},
+    @{Name='PasswordNeverExpires';Expression={$_.PasswordNeverExpires}},
+    @{Name='PasswordLastSet';Expression={$_.PasswordLastSet}} |
+Export-Csv -Path "ADUsersInfo.csv" -NoTypeInformation -Encoding UTF8
+
+Write-Host "CSV exported to ADUsersInfo.csv"
+
