@@ -1,32 +1,17 @@
-$tasks = Get-ScheduledTask
+$computername = $env:COMPUTERNAME
 
-$taskInfo = foreach ($task in $tasks) {
-    try {
-        $taskPath = $task.TaskPath
-        $taskName = $task.TaskName
-        $taskDetails = Get-ScheduledTaskInfo -TaskName $taskName -TaskPath $taskPath
-        $runAsUser = $task.Principal.UserId
+# Define excluded accounts array
+$excludedAccounts = @(
+    'LocalSystem',
+    'NT AUTHORITY\LocalService',
+    'NT AUTHORITY\NetworkService'
+)
 
-        if ($null -eq $runAsUser -or
-            $runAsUser -match '^(NT AUTHORITY\\SYSTEM|SYSTEM|NT AUTHORITY\\NETWORK SERVICE|NETWORK SERVICE|NT AUTHORITY\\LOCAL SERVICE|LOCAL SERVICE)$') {
-            continue
-        }
-
-        [PSCustomObject]@{
-            TaskName   = $taskName
-            TaskPath   = $taskPath
-            State      = $task.State
-            RunAsUser  = $runAsUser
-            LastRun    = $taskDetails.LastRunTime
-            LastResult = $taskDetails.LastTaskResult
-        }
-
-    } catch {
-        Write-Warning "Failed to get info for task $($task.TaskName): $_"
-    }
-}
-
-$taskInfo | Format-Table -AutoSize
-
-$taskInfo | Export-Csv -Path "$env:USERPROFILE\Documents\_$computername NonSystemTasks.csv" -NoTypeInformation -Encoding UTF8
-write-Host "Done! CSV saved to Documents." -ForegroundColor Green
+Get-WmiObject -Class Win32_Service |
+Where-Object {
+    # Use -notcontains instead of -notin
+    $excludedAccounts -notcontains $_.StartName
+} |
+Select-Object Name, DisplayName, StartName |
+Export-Csv -Path "\\HASH-SQL\Users\logi\Desktop\Tasks and Services CSV\services\_${computername}_services.csv" -NoTypeInformation -Encoding UTF8
+Write-Host "Services CSV saved to Desktop"
