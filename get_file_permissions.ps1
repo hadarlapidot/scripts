@@ -9,7 +9,7 @@ if (-not (Test-Path $desktop)) {
 }
 
 # Output CSV path
-$outputCsv = Join-Path $desktop "permissions_rotshtein-doc.csv"
+$outputCsv = Join-Path $desktop "permissions_Mate.csv"
 Write-Host "CSV will be saved to: $outputCsv" -ForegroundColor Green
 
 # Write CSV header manually (DirectoryName first)
@@ -17,7 +17,7 @@ Write-Host "CSV will be saved to: $outputCsv" -ForegroundColor Green
     Out-File $outputCsv -Encoding UTF8
 
 # Process directories recursively
-Get-ChildItem E:\rotshtein-doc -Recurse -Directory -ErrorAction SilentlyContinue |
+Get-ChildItem H:\ -Recurse -Directory -ErrorAction SilentlyContinue |
 ForEach-Object {
     $folderPath = $_.FullName
     $dirName = Split-Path $folderPath -Leaf
